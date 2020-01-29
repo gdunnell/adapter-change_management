@@ -117,8 +117,8 @@ healthcheck(callback) {
       this.emitOffline();
       log.error(`ServiceNow - ${this.id}: Health check failed.\n${JSON.stringify(error)}`);
       if (callback) {
-          callback(null, error);
-        } 
+        callback(null, error);
+      } 
    } else {
      /**
       * Write this block.
@@ -133,8 +133,8 @@ healthcheck(callback) {
       this.emitOnline();
       log.info(`ServiceNow - ${this.id}: Health check successful.`);
       if (callback) {
-          callback(result, null);
-        } 
+        callback(result, null);
+      } 
    }
  });
 }
@@ -192,7 +192,36 @@ healthcheck(callback) {
      * Note how the object was instantiated in the constructor().
      * get() takes a callback function.
      */
-     this.connector.get(callback);
+     this.connector.get((results, error) => {
+         if(error) {
+             callback(null, error);
+         } else {
+             let newtickets = [];
+             if (results.body) {
+                 let json = JSON.parse(results.body);
+                 let result = json.result;
+                 //console.log(result);
+                 for (let i = 0; i < result.length; i++) {
+                    newtickets.push(
+                        {
+                            change_ticket_number: result[i].number,
+                            active: result[i].active,
+                            priority: result[i]['priority'],
+                            description: result[i]['description'],
+                            work_start: result[i]['work_start'],
+                            work_end: result[i]['work_end'],
+                            change_ticket_key: result[i]['sys_id']
+                        }
+                    );
+                 }
+             }
+             if (newtickets.length > 0) {
+                 callback(newtickets, null);
+             } else {
+                 callback(null, 'Record data not returned.');
+             }
+         }
+     });
   }
 
   /**
@@ -211,7 +240,36 @@ healthcheck(callback) {
      * Note how the object was instantiated in the constructor().
      * post() takes a callback function.
      */
-     this.connector.post(this.connector.options, (results, error));
+     this.connector.post(this.connector.options, (results, error) => {
+                  if(error) {
+             callback(null, error);
+         } else {
+             let newtickets = [];
+             if (results.body) {
+                 let json = JSON.parse(results.body);
+                 let result = [json.result];
+                 for (let i = 0; i < result.length; i++) {
+                    newtickets.push(
+                        {
+                            change_ticket_number: result[i].number,
+                            active: result[i].active,
+                            priority: result[i]['priority'],
+                            description: result[i]['description'],
+                            work_start: result[i]['work_start'],
+                            work_end: result[i]['work_end'],
+                            change_ticket_key: result[i]['sys_id']
+                        }
+                    );
+                 }
+             }
+             if (newtickets.length > 0) {
+                 let jsonString = JSON.stringify(newtickets[0]);
+                 callback(JSON.parse(jsonString), null);
+             } else {
+                 callback(null, 'Record data not returned.');
+             }
+         }
+     });
   }
 }
 
